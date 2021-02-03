@@ -110,31 +110,18 @@ void framebuffer_size_callback(GLFWwindow *window, int width, int height) {
 
 void processInput(GLFWwindow *window) {
   return;
-  float camera_speed = 2.5f * delta_time;
-  if(glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-    glfwSetWindowShouldClose(window, GL_TRUE);
-  if(glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
-    camera_pos += camera_speed * camera_front;
-  }
-  if(glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
-    camera_pos -= camera_speed * camera_front;
-  }
-  if(glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
-    camera_pos -= glm::normalize(glm::cross(camera_front, camera_up)) * camera_speed;
-  }
-  if(glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
-    camera_pos += glm::normalize(glm::cross(camera_front, camera_up)) * camera_speed;
-  }
 }
 
 static float lastx = 400;
 static float lasty = 300;
 static bool first_mouse = true;
-float yaw = -90.0f;
-float pitch = 0.0f;
+
+// view and camera calculation
+float radius = 100.0f;
+float theta = 0.0f;
+float rho   = 0.0f;
 
 void mouse_callback(GLFWwindow *window, double xpos, double ypos) {
-  return;
   if(first_mouse) {
     lastx = xpos;
     lasty = ypos;
@@ -149,19 +136,8 @@ void mouse_callback(GLFWwindow *window, double xpos, double ypos) {
   xoffset += sensitivity;
   yoffset += sensitivity;
 
-  yaw += xoffset;
-  pitch += yoffset;
-
-  if(pitch > 89.0f)
-    pitch = 89.0f;
-  if(pitch < -89.0f)
-    pitch = -89.0f;
-
-  glm::vec3 direction;
-  direction.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
-  direction.y = sin(glm::radians(pitch));
-  direction.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
-  camera_front = glm::normalize(direction);
+  theta += xoffset * delta_time;
+  rho   += yoffset * delta_time;
 }
 
 
@@ -305,13 +281,16 @@ void render_sphere(struct Sphere* sphere) {
   glUseProgram(0);
 }
 
-void parse_file(char *file_name, 
-                std::vector<glm::vec3> &alpha_positions, 
-                std::vector<glm::vec3> &beta_positions, 
-                std::vector<glm::vec3> &other_positions);
+void scroll_callback(GLFWwindow *window, double xoffset, double yoffset) {
+
+  radius += 100.0 * yoffset * delta_time;
+
+  printf("%f, %f, %f\n", radius, xoffset, yoffset);
 
 
+}
 
+void parse_file(char *file_name, std::vector<glm::vec3> &, std::vector<glm::vec3> &, std::vector<glm::vec3> &, std::vector<float> &);
 
 int main(int argc, char **argv) {
   srand(time(0));
@@ -333,35 +312,27 @@ int main(int argc, char **argv) {
   }
   Sphere sphere;
   Lines  lines;
-  for(int i=0; i<20; i++) {
-    lines.vertices.push_back((float)(rand() % 200) / 100.0f - 1.0f);
-    lines.vertices.push_back((float)(rand() % 200) / 100.0f - 1.0f);
-    lines.vertices.push_back((float)(rand() % 200) / 100.0f - 1.0f);
-    lines.vertices.push_back((float)(rand() % 200) / 100.0f - 1.0f);
-    lines.vertices.push_back((float)(rand() % 200) / 100.0f - 1.0f);
-    lines.vertices.push_back((float)(rand() % 200) / 100.0f - 1.0f);
-  }
-  lines.vertices.push_back(0.0f);
-  lines.vertices.push_back(0.0f);
-  lines.vertices.push_back(0.0f);
-  lines.vertices.push_back(2.0f);
-  lines.vertices.push_back(2.0f);
-  lines.vertices.push_back(2.0f);
-
+  // transform
+  std::vector<glm::vec3> alpha_positions;
+  std::vector<glm::vec3> beta_positions;
+  std::vector<glm::vec3> other_positions;
 
   lines.lineID = create_shader("lines.vsh", "lines.fsh");
+
+  if(argc==2) {
+    parse_file(argv[1], alpha_positions, beta_positions, other_positions, lines.vertices);
+  }
   setup_gl_for_lines(&lines);
 
 
+
   sphere.sphereID = create_shader("triangle.vsh", "triangle.fsh");
-  float radius = 0.25f;
-  int stackCount = 16;
-  int sectorCount = 16;
-  create_sphere(&sphere, radius, stackCount, sectorCount);
+  create_sphere(&sphere, 0.25f, 16, 16);
   init_sphere_gl_buffers(&sphere);
 
 
   glViewport(0, 0, 800, 600);
+  glfwSetScrollCallback(window, scroll_callback);
   glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
   // model matrix
@@ -374,31 +345,6 @@ int main(int argc, char **argv) {
   proj = glm::perspective(glm::radians(45.0f), 800.0f / 600.0f, 0.1f, 100.0f);
   glm::vec3 light_color = glm::vec3(1.0f, 1.0f, 1.0f);
   glm::vec3 light_pos = glm::vec3(5.0f, 3.0f, 5.0f);
-
-
-  // transform
-  std::vector<glm::vec3> alpha_positions;
-  std::vector<glm::vec3> beta_positions;
-  std::vector<glm::vec3> other_positions;
-
-
-  if(argc==2) {
-    parse_file(argv[1], alpha_positions, beta_positions, other_positions);
-  }
-
-  /*for(int i=0; i<5; i++) {
-    float t = i / 2.0f;
-    alpha_positions.push_back(glm::vec3(t, t, -t));
-  }
-  for(int i=0; i<2; i++) {
-    float x = (-3.0+i) / 1.5f;
-    beta_positions.push_back(glm::vec3(x, 0.5f, x));
-  }
-  for(int i=0; i<2; i++) {
-    float x = i / 1.5f - 3.0f;
-    other_positions.push_back(glm::vec3(x, 0.5f, x));
-  }*/
-
   int modelLoc = glGetUniformLocation(sphere.sphereID,"model");
   glUseProgram(sphere.sphereID);
   glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
@@ -438,6 +384,22 @@ int main(int argc, char **argv) {
   glm::vec3 camera_target = glm::vec3(0.0f, 0.0f, 0.0f);
   glm::vec3 camera_direction = glm::normalize(camera_pos - camera_target);
 
+  glm::vec3 origin=glm::vec3(0.0f, 0.0f, 0.0f);
+  int total_points = alpha_positions.size() + beta_positions.size() + other_positions.size();
+
+  for(const glm::vec3 &v : alpha_positions) {
+    origin += v;
+  }
+  for(const glm::vec3 &v : beta_positions) {
+    origin += v;
+  }
+  for(const glm::vec3 &v : other_positions) {
+    origin += v;
+  }
+
+  origin.x /= (float)total_points;
+  origin.y /= (float)total_points;
+  origin.z /= (float)total_points;
 
   //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
   glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
@@ -449,13 +411,14 @@ int main(int argc, char **argv) {
     last_frame = current_frame;
 
     //printf("delta time: %f\n", delta_time);
+   
+    // spherical coordinates. 
+    float cam_x = radius * sin(theta) * cos(rho);
+    float cam_y = radius * sin(theta) * sin(rho);
+    float cam_z = radius * cos(theta);
+    glm::vec3 cam_pos = glm::vec3(cam_x, cam_y, cam_z) + origin;
 
-    // view and camera calculation
-    float radius = 100.0f;
-    float cam_x = sin(0.01*glfwGetTime()) * radius;
-    float cam_z = cos(0.01*glfwGetTime()) * radius;
-
-    view = glm::lookAt(glm::vec3(cam_x, 0.0f, cam_z), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0, 1.0, 0.0));
+    view = glm::lookAt(cam_pos, origin, glm::vec3(0.0, 1.0, 0.0));
 
 
     // input
@@ -531,7 +494,8 @@ int main(int argc, char **argv) {
 void parse_file(char *file_name, 
                 std::vector<glm::vec3> &alpha_positions, 
                 std::vector<glm::vec3> &beta_positions, 
-                std::vector<glm::vec3> &other_positions)
+                std::vector<glm::vec3> &other_positions,
+                std::vector<float> &vertices)
 {
    std::string buffer;
    std::ifstream file(file_name); 
@@ -541,7 +505,12 @@ void parse_file(char *file_name,
 
    std::vector<int> sheet_begin;
    std::vector<int> sheet_end;
-
+   vertices.push_back(0.0f);
+   vertices.push_back(0.0f);
+   vertices.push_back(0.0f);
+   vertices.push_back(122.0f);
+   vertices.push_back(122.0f);
+   vertices.push_back(122.0f);
 
    if(!file.is_open()) return;
    while(std::getline(file, buffer)) {
