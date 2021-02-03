@@ -282,23 +282,27 @@ void render_sphere(struct Sphere* sphere) {
 }
 
 void scroll_callback(GLFWwindow *window, double xoffset, double yoffset) {
-
   radius += 100.0 * yoffset * delta_time;
-
-  printf("%f, %f, %f\n", radius, xoffset, yoffset);
-
-
 }
 
 void parse_file(char *file_name, std::vector<glm::vec3> &, std::vector<glm::vec3> &, std::vector<glm::vec3> &, std::vector<float> &);
 
 int main(int argc, char **argv) {
-  srand(time(0));
+  std::string window_title = "PDB Viewer";
+  if(argc == 2) {
+    window_title += " -- ";
+    window_title += argv[1];
+  }
+
+
   glfwInit();
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-  GLFWwindow *window = glfwCreateWindow(800, 600, "PDB Viewer", 0, 0);
+
+
+
+  GLFWwindow *window = glfwCreateWindow(800, 600, window_title.c_str(), 0, 0);
   if(window == 0) {
     printf("Failed to create GLFW window\n");
     glfwTerminate();
@@ -384,9 +388,9 @@ int main(int argc, char **argv) {
   glm::vec3 camera_target = glm::vec3(0.0f, 0.0f, 0.0f);
   glm::vec3 camera_direction = glm::normalize(camera_pos - camera_target);
 
+  // origin = average of the all coordinates.
   glm::vec3 origin=glm::vec3(0.0f, 0.0f, 0.0f);
   int total_points = alpha_positions.size() + beta_positions.size() + other_positions.size();
-
   for(const glm::vec3 &v : alpha_positions) {
     origin += v;
   }
@@ -410,8 +414,6 @@ int main(int argc, char **argv) {
     delta_time = current_frame - last_frame;
     last_frame = current_frame;
 
-    //printf("delta time: %f\n", delta_time);
-   
     // spherical coordinates. 
     float cam_x = radius * sin(theta) * cos(rho);
     float cam_y = radius * sin(theta) * sin(rho);
@@ -544,7 +546,7 @@ void parse_file(char *file_name,
        for(unsigned int i=0; i<helix_size; i++) {
          if(helix_begin[i] <= resSeq && resSeq <= helix_end[i]) {
            //add to the alpha helix.
-           printf("ALPHA %d -> %f, %f, %f\n", resSeq, x, y, z);
+           //printf("ALPHA %d -> %f, %f, %f\n", resSeq, x, y, z);
            alpha_positions.push_back(glm::vec3(x, y, z));
            goto end_for_loop;
          }
@@ -553,14 +555,14 @@ void parse_file(char *file_name,
        for(unsigned int i=0; i<sheet_size; i++) {
          if(sheet_begin[i] <= resSeq && resSeq <= sheet_end[i]) {
            //add to the beta sheet.
-           printf("BETA %d -> %f, %f, %f\n", resSeq, x, y, z);
+           //printf("BETA %d -> %f, %f, %f\n", resSeq, x, y, z);
            beta_positions.push_back(glm::vec3(x, y, z));
            goto end_for_loop;
          }
        }
 
        // not either alpha or beta
-       printf("DEFAULT %d -> %f, %f, %f\n", resSeq, x, y, z);
+       //printf("DEFAULT %d -> %f, %f, %f\n", resSeq, x, y, z);
        other_positions.push_back(glm::vec3(x, y, z));
 
 
