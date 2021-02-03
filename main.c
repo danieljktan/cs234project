@@ -520,7 +520,7 @@ void parse_file(char *file_name,
      std::string sub_string;
      ss >> sub_string;
      
-     if(sub_string == "ATOM") {
+     if(sub_string == "ATOM" || sub_string == "HETATM") {
        int resSeq = std::stoi(buffer.substr(22, 4));
        float x = std::stof(buffer.substr(30, 8));
        float y = std::stof(buffer.substr(38, 8));
