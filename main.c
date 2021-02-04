@@ -9,7 +9,7 @@
 #include "glm/gtc/matrix_transform.hpp"
 #include "glm/gtc/type_ptr.hpp"
 #include <vector>
-
+#include <map>
 #define PI 3.14592653589f
 
 static glm::mat4 proj;
@@ -59,9 +59,9 @@ void setup_gl_for_lines(Lines *lines) {
 void render_lines(Lines *lines) {
   glUseProgram(lines->lineID);
   glEnableVertexAttribArray(0);
-  glBindBuffer(GL_ARRAY_BUFFER, lines->VBO);
+  glBindBuffer(GL_ARRAY_BUFFER, lines->VAO);
   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
-  glDrawArrays(GL_LINES, 0, lines->vertices.size()/6);
+  glDrawArrays(GL_LINES, 0, lines->vertices.size());
   glDisableVertexAttribArray(0);
   glUseProgram(0);
 }
@@ -263,9 +263,6 @@ void create_sphere(struct Sphere *sphere, float radius, int stackCount, int sect
 }
 
 void render_sphere(struct Sphere* sphere) {
-  //model = glm::translate(glm::mat4(1.0f), position);
-  //glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-
   glUseProgram(sphere->sphereID);
   //vertices
   glEnableVertexAttribArray(0);
@@ -297,13 +294,10 @@ int main(int argc, char **argv) {
     window_title += argv[1];
   }
 
-
   glfwInit();
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-
-
 
   GLFWwindow *window = glfwCreateWindow(800, 600, window_title.c_str(), 0, 0);
   if(window == 0) {
@@ -405,7 +399,6 @@ int main(int argc, char **argv) {
   origin.y /= (float)total_points;
   origin.z /= (float)total_points;
 
-  //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
   glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
   while(!glfwWindowShouldClose(window)) {
     // delta calculation
@@ -429,6 +422,10 @@ int main(int argc, char **argv) {
     glClearColor(.250f, .250f, .250f, 1.0f);
     glEnable(GL_DEPTH_TEST);
     glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
+
+    // draw lines
+    render_lines(&lines);
+
 
     float r;
     float g;
@@ -470,10 +467,6 @@ int main(int argc, char **argv) {
       glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
       render_sphere(&sphere);
     }
-
-    // draw lines
-    render_lines(&lines);
-
     // model
     glUseProgram(sphere.sphereID);
     glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
@@ -507,15 +500,8 @@ void parse_file(char *file_name,
 
    std::vector<int> sheet_begin;
    std::vector<int> sheet_end;
-
-   for(int i=0; i<200; i++) {
-     vertices.push_back((float)(rand()%200)/10.0f-10.0f);
-     vertices.push_back((float)(rand()%200)/10.0f-10.0f);
-     vertices.push_back((float)(rand()%200)/10.0f-10.0f);
-     vertices.push_back((float)(rand()%200)/10.0f-10.0f);
-     vertices.push_back((float)(rand()%200)/10.0f-10.0f);
-     vertices.push_back((float)(rand()%200)/10.0f-10.0f);
-   }
+   std::vector<glm::vec3> atoms;
+   //std::map<std::string, std::vector<glm::vec3> > vec_map;
 
    if(!file.is_open()) return;
    while(std::getline(file, buffer)) {
@@ -524,28 +510,15 @@ void parse_file(char *file_name,
      ss >> sub_string;
      
      if(sub_string == "ATOM" || sub_string == "HETATM") {
+       std::string residue_name = buffer.substr(17,3);
        int resSeq = std::stoi(buffer.substr(22, 4));
        float x = std::stof(buffer.substr(30, 8));
        float y = std::stof(buffer.substr(38, 8));
        float z = std::stof(buffer.substr(46, 8));
-       //printf("%d -> %f, %f, %f\n", resSeq, x, y, z);
-
-       // Serial  // Integer
-       // Atom    // Name
-       // altLoc  // Character
-       // resName // Residue Name
-       // chainID // Character
-       // resSeq  // Integer
-       // iCode   // AChar
-       // x       // float
-       // y       // float
-       // z       // float
-       // occupancy // float
-       // tempFactor // float
-       // element    // LString(2)
-       // charge     // LString(2)
        unsigned int helix_size = helix_begin.size();
        unsigned int sheet_size = sheet_begin.size();
+       atoms.push_back(glm::vec3(x,y,z));
+
        for(unsigned int i=0; i<helix_size; i++) {
          if(helix_begin[i] <= resSeq && resSeq <= helix_end[i]) {
            //add to the alpha helix.
@@ -569,91 +542,37 @@ void parse_file(char *file_name,
        other_positions.push_back(glm::vec3(x, y, z));
 
 
-       end_for_loop:
-       asm("nop");  // used to trick the compiler into accepting a label to nowhere.
-
      } else if(sub_string == "HELIX") {
-       //std::cout << buffer.length() << std::endl;
-       //int serNum;
-       //std::string helixID;// LString(3) literal string with exactly 3 characters
-       // initResName    // Residue Name
-       // initChainID    // Character any non-control character or a space
-       // initSeqNum     // Integer
-       // initICode      // AChar  must be [A-Za-z]
-       // endResName     // Residue Name
-       // endChainID     // Character any non-control character or a space
-       // endSeqNum      // Integer
-       // endICode       // AChar
-       // helixClass     // Integer
-       // comment        // String
-       // Length         // Integer
-
        int helixClass = std::stoi(buffer.substr(38,2));
+       // helixClass == 1 is alpha
        if(helixClass != 1) continue;
        int initSeqNum = std::stoi(buffer.substr(21,4));
        int endSeqNum  = std::stoi(buffer.substr(33,4));
-       // helixClass == 1 is alpha
-       //printf("HELIX %d->%d, %d\n", initSeqNum, endSeqNum, helixClass);
        helix_begin.push_back(initSeqNum);
        helix_end.push_back(endSeqNum);
-
-
-
-
      } else if(sub_string == "SHEET") {
-       // strand   integer
-       // sheetID  lstring(3)
-       // numStrands integer
-       // initResName residue name
-       // initChainID character
-       // initSeqNum  integer  23-26
-       // initICode   achar
-       // endResName
-       // endChainID
-       // endSeqNum            34-37
-       // endICode achar
-       // sense  integer
-       // curAtom atom
-       // curResName residue_name 
-       // curChainID character
-       // curResSeq Integer
-       // curICode AChar
-       // prevAtom atom
-       // prevResName residue_name
-       // prevChainID character
-       // prevResSeq Integer
-       // prevICode AChar
        std::string sheetID = buffer.substr(11,3);  // use the B id
        if(sheetID != "  B") continue;
-
-
        int initSeqNum = std::stoi(buffer.substr(23,4));
        int endSeqNum  = std::stoi(buffer.substr(34,4));
        
        sheet_begin.push_back(initSeqNum);
        sheet_end.push_back(endSeqNum);
+     } 
 
-       //printf("SHEETID: %s, %d, %d\n", sheetID.c_str(), initSeqNum, endSeqNum);
-     } else if(sub_string == "SSBOND") {
-       int seqNum1 = std::stoi(buffer.substr(17,4));
-       int seqNum2 = std::stoi(buffer.substr(31,4));
-       //printf("SSBOND: %d %d\n", seqNum1, seqNum2);
-     } else if(sub_string == "LINK") {
-       int resSeq1 = std::stoi(buffer.substr(22,4));
-       int resSeq2 = std::stoi(buffer.substr(52,4));
-       //printf("LINK: %d %d\n", resSeq1, resSeq2);
-     } else if(sub_string == "CISPEP") {
-       int seqNum1 = std::stoi(buffer.substr(17,4));
-       int seqNum2 = std::stoi(buffer.substr(31,4));
-       //printf("CISPEP: %d %d\n", seqNum1, seqNum2);
-     } else if(sub_string == "SEQRES") {
-       // consecutive...???
-     }
-
-
+     end_for_loop:
      ss.clear();
 
    }
 
+   // draw lines
+   for(int i=1; i<atoms.size(); i++) {
+     vertices.push_back(atoms[i-1].x);
+     vertices.push_back(atoms[i-1].y);
+     vertices.push_back(atoms[i-1].z);
+     vertices.push_back(atoms[i].x);
+     vertices.push_back(atoms[i].y);
+     vertices.push_back(atoms[i].z);
+   }
 }
 
