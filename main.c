@@ -59,7 +59,7 @@ void setup_gl_for_lines(Lines *lines) {
 void render_lines(Lines *lines) {
   glUseProgram(lines->lineID);
   glEnableVertexAttribArray(0);
-  glBindBuffer(GL_ARRAY_BUFFER, lines->VAO);
+  glBindBuffer(GL_ARRAY_BUFFER, lines->VBO);
   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
   glDrawArrays(GL_LINES, 0, lines->vertices.size()/6);
   glDisableVertexAttribArray(0);
@@ -122,6 +122,12 @@ float theta = 0.0f;
 float rho   = 0.0f;
 
 void mouse_callback(GLFWwindow *window, double xpos, double ypos) {
+
+  int state = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT);
+  if(state != GLFW_PRESS) {
+    return;
+  }
+
   if(first_mouse) {
     lastx = xpos;
     lasty = ypos;
@@ -132,12 +138,9 @@ void mouse_callback(GLFWwindow *window, double xpos, double ypos) {
   float yoffset = lasty - ypos;
   lastx = xpos;
   lasty = ypos;
-  float sensitivity = 0.1f;
-  xoffset += sensitivity;
-  yoffset += sensitivity;
 
-  theta += xoffset * delta_time;
-  rho   += yoffset * delta_time;
+  theta -= xoffset * delta_time * 0.75f;
+  rho   -= yoffset * delta_time * 0.75f;
 }
 
 
@@ -314,21 +317,18 @@ int main(int argc, char **argv) {
     printf("Failed to initialize GLAD\n");
     return -1;
   }
-  Sphere sphere;
-  Lines  lines;
-  // transform
   std::vector<glm::vec3> alpha_positions;
   std::vector<glm::vec3> beta_positions;
   std::vector<glm::vec3> other_positions;
+  Sphere sphere;
+  Lines  lines;
+  // transform
 
   lines.lineID = create_shader("lines.vsh", "lines.fsh");
-
   if(argc==2) {
     parse_file(argv[1], alpha_positions, beta_positions, other_positions, lines.vertices);
   }
   setup_gl_for_lines(&lines);
-
-
 
   sphere.sphereID = create_shader("triangle.vsh", "triangle.fsh");
   create_sphere(&sphere, 0.25f, 16, 16);
@@ -426,7 +426,7 @@ int main(int argc, char **argv) {
     // input
     processInput(window);
     // render
-    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    glClearColor(.250f, .250f, .250f, 1.0f);
     glEnable(GL_DEPTH_TEST);
     glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
 
@@ -471,6 +471,9 @@ int main(int argc, char **argv) {
       render_sphere(&sphere);
     }
 
+    // draw lines
+    render_lines(&lines);
+
     // model
     glUseProgram(sphere.sphereID);
     glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
@@ -483,9 +486,6 @@ int main(int argc, char **argv) {
     glUniformMatrix4fv(viewLocLine, 1, GL_FALSE, glm::value_ptr(view));
     glUniformMatrix4fv(projLocLine, 1, GL_FALSE, glm::value_ptr(proj));
     glUniformMatrix4fv(modelLocLine, 1, GL_FALSE, glm::value_ptr(model));
-    // draw lines
-    render_lines(&lines);
-
     glfwSwapBuffers(window);
     glfwPollEvents();
   }
@@ -507,12 +507,15 @@ void parse_file(char *file_name,
 
    std::vector<int> sheet_begin;
    std::vector<int> sheet_end;
-   vertices.push_back(0.0f);
-   vertices.push_back(0.0f);
-   vertices.push_back(0.0f);
-   vertices.push_back(122.0f);
-   vertices.push_back(122.0f);
-   vertices.push_back(122.0f);
+
+   for(int i=0; i<200; i++) {
+     vertices.push_back((float)(rand()%200)/10.0f-10.0f);
+     vertices.push_back((float)(rand()%200)/10.0f-10.0f);
+     vertices.push_back((float)(rand()%200)/10.0f-10.0f);
+     vertices.push_back((float)(rand()%200)/10.0f-10.0f);
+     vertices.push_back((float)(rand()%200)/10.0f-10.0f);
+     vertices.push_back((float)(rand()%200)/10.0f-10.0f);
+   }
 
    if(!file.is_open()) return;
    while(std::getline(file, buffer)) {
