@@ -9,7 +9,6 @@
 #include "glm/gtc/matrix_transform.hpp"
 #include "glm/gtc/type_ptr.hpp"
 #include <vector>
-#include <map>
 #define PI 3.14592653589f
 
 static glm::mat4 proj;
@@ -509,8 +508,8 @@ void parse_file(char *file_name,
      std::string sub_string;
      ss >> sub_string;
      
-     if(sub_string == "ATOM" || sub_string == "HETATM") {
-       std::string residue_name = buffer.substr(17,3);
+     if(sub_string == "ATOM") {// || sub_string == "HETATM") {
+       //std::string residue_name = buffer.substr(17,3);
        int resSeq = std::stoi(buffer.substr(22, 4));
        float x = std::stof(buffer.substr(30, 8));
        float y = std::stof(buffer.substr(38, 8));
@@ -518,6 +517,7 @@ void parse_file(char *file_name,
        unsigned int helix_size = helix_begin.size();
        unsigned int sheet_size = sheet_begin.size();
        atoms.push_back(glm::vec3(x,y,z));
+       //vec_map[residue_name].push_back(glm::vec3(x,y,z));
 
        for(unsigned int i=0; i<helix_size; i++) {
          if(helix_begin[i] <= resSeq && resSeq <= helix_end[i]) {
@@ -558,7 +558,18 @@ void parse_file(char *file_name,
        
        sheet_begin.push_back(initSeqNum);
        sheet_end.push_back(endSeqNum);
-     } 
+     } else if(sub_string == "TER") {
+       // draw lines
+       for(int i=1; i<atoms.size(); i++) {
+         vertices.push_back(atoms[i-1].x);
+         vertices.push_back(atoms[i-1].y);
+         vertices.push_back(atoms[i-1].z);
+         vertices.push_back(atoms[i].x);
+         vertices.push_back(atoms[i].y);
+         vertices.push_back(atoms[i].z);
+       }
+       atoms.clear();
+     }
 
      end_for_loop:
      ss.clear();
