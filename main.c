@@ -124,6 +124,8 @@ void mouse_callback(GLFWwindow *window, double xpos, double ypos) {
 
   int state = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT);
   if(state != GLFW_PRESS) {
+    lastx = xpos;
+    lasty = ypos;
     return;
   }
 
@@ -500,7 +502,6 @@ void parse_file(char *file_name,
    std::vector<int> sheet_begin;
    std::vector<int> sheet_end;
    std::vector<glm::vec3> atoms;
-   //std::map<std::string, std::vector<glm::vec3> > vec_map;
 
    if(!file.is_open()) return;
    while(std::getline(file, buffer)) {
@@ -509,7 +510,6 @@ void parse_file(char *file_name,
      ss >> sub_string;
      
      if(sub_string == "ATOM") {// || sub_string == "HETATM") {
-       //std::string residue_name = buffer.substr(17,3);
        int resSeq = std::stoi(buffer.substr(22, 4));
        float x = std::stof(buffer.substr(30, 8));
        float y = std::stof(buffer.substr(38, 8));
@@ -517,12 +517,10 @@ void parse_file(char *file_name,
        unsigned int helix_size = helix_begin.size();
        unsigned int sheet_size = sheet_begin.size();
        atoms.push_back(glm::vec3(x,y,z));
-       //vec_map[residue_name].push_back(glm::vec3(x,y,z));
 
        for(unsigned int i=0; i<helix_size; i++) {
          if(helix_begin[i] <= resSeq && resSeq <= helix_end[i]) {
            //add to the alpha helix.
-           //printf("ALPHA %d -> %f, %f, %f\n", resSeq, x, y, z);
            alpha_positions.push_back(glm::vec3(x, y, z));
            goto end_for_loop;
          }
@@ -531,14 +529,12 @@ void parse_file(char *file_name,
        for(unsigned int i=0; i<sheet_size; i++) {
          if(sheet_begin[i] <= resSeq && resSeq <= sheet_end[i]) {
            //add to the beta sheet.
-           //printf("BETA %d -> %f, %f, %f\n", resSeq, x, y, z);
            beta_positions.push_back(glm::vec3(x, y, z));
            goto end_for_loop;
          }
        }
 
        // not either alpha or beta
-       //printf("DEFAULT %d -> %f, %f, %f\n", resSeq, x, y, z);
        other_positions.push_back(glm::vec3(x, y, z));
 
 
