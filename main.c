@@ -299,6 +299,9 @@ int main(int argc, char **argv) {
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+  
+  // anti aliasing
+  glfwWindowHint(GLFW_SAMPLES, 4);
 
   GLFWwindow *window = glfwCreateWindow(800, 600, window_title.c_str(), 0, 0);
   if(window == 0) {
@@ -400,6 +403,7 @@ int main(int argc, char **argv) {
   origin.y /= (float)total_points;
   origin.z /= (float)total_points;
 
+  glEnable(GL_MULTISAMPLE);
   glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
   while(!glfwWindowShouldClose(window)) {
     // delta calculation
