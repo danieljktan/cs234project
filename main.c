@@ -104,7 +104,7 @@ void framebuffer_size_callback(GLFWwindow *window, int width, int height) {
   glViewport(0,0,width,height);
   float w = (float)width;
   float h = (float)height;
-  proj = glm::perspective(glm::radians(45.0f), w / h, 0.1f, 100.0f);
+  proj = glm::perspective(glm::radians(45.0f), w / h, 0.1f, 200.0f);
 }
 
 void processInput(GLFWwindow *window) {
@@ -344,7 +344,7 @@ int main(int argc, char **argv) {
   glm::mat4 view;
 
   // projection matrix
-  proj = glm::perspective(glm::radians(45.0f), 800.0f / 600.0f, 0.1f, 100.0f);
+  proj = glm::perspective(glm::radians(45.0f), 800.0f / 600.0f, 0.1f, 200.0f);
   glm::vec3 light_color = glm::vec3(1.0f, 1.0f, 1.0f);
   glm::vec3 light_pos = glm::vec3(5.0f, 3.0f, 5.0f);
   int modelLoc = glGetUniformLocation(sphere.sphereID,"model");
@@ -405,6 +405,7 @@ int main(int argc, char **argv) {
 
   glEnable(GL_MULTISAMPLE);
   glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
   while(!glfwWindowShouldClose(window)) {
     // delta calculation
     glUseProgram(0);
