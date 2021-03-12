@@ -406,6 +406,7 @@ int main(int argc, char **argv) {
   glEnable(GL_MULTISAMPLE);
   glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
+  // main game loop
   while(!glfwWindowShouldClose(window)) {
     // delta calculation
     glUseProgram(0);
@@ -436,7 +437,7 @@ int main(int argc, char **argv) {
     float r;
     float g;
     float b;
-
+    // draw alpha helix atoms. --color them red.
     r = 1.0f;
     g = 0.2f;
     b = 0.2f;
@@ -450,6 +451,7 @@ int main(int argc, char **argv) {
       render_sphere(&sphere);
     }
 
+    // draw beta sheet atoms. --color them blue.
     r = 0.2f;
     g = 0.2f;
     b = 1.0f;
@@ -462,6 +464,7 @@ int main(int argc, char **argv) {
       render_sphere(&sphere);
     }
 
+    // draw other atoms. --color them grey.
     r = 0.5f;
     g = 0.5f;
     b = 0.5f;
